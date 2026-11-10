@@ -1,0 +1,300 @@
+{
+  "name": "GitHub Repository Monitoring",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "81084668-4cf5-48d2-b33d-00e101bf74af",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/search/repositories",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "machine learning"
+            },
+            {
+              "name": "sort",
+              "value": "stars"
+            },
+            {
+              "name": "order",
+              "value": "desc"
+            },
+            {
+              "name": "per_page",
+              "value": "10"
+            },
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        0
+      ],
+      "id": "1c35a4da-a3e9-4b54-8801-4786ba84958f",
+      "name": "HTTP Request",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nconst repos = response.items || [];\n\nconst topRepos = repos\n  .sort((a, b) => b.stargazers_count - a.stargazers_count)\n  .slice(0, 5);\n\nreturn topRepos.map(repo => ({\n  json: {\n    name: repo.name,\n    owner: repo.owner.login,\n    description: repo.description,\n    stars: repo.stargazers_count,\n    language: repo.language,\n    url: repo.html_url\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -32
+      ],
+      "id": "f3e16080-06b2-4499-b996-0e75fa696740",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $json.owner + '/' + $json.name + '/readme' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.raw+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        576,
+        96
+      ],
+      "id": "43738150-bb51-4c91-9f81-f0a4c080551a",
+      "name": "HTTP Request1",
+      "alwaysOutputData": false,
+      "notesInFlow": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        912,
+        16
+      ],
+      "id": "23a33613-38bd-422d-a457-7e69864676cf",
+      "name": "Merge1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bcabc430-f29d-4649-a751-62b1a888f605",
+              "leftValue": "={{$json.stars}}",
+              "rightValue": 1000,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        16
+      ],
+      "id": "2367225e-ea90-45db-9768-879581b97376",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1569397558306930691/yY_sw5uftraaL_R2LSVdarBPFHxcwuPTFX06R0XBO09fqKBr_JrAjcSaOQeR1M0dHq2M",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"🚀 GitHub Morning Brief\\n\\nRepository: {{$json.name}}\\nOwner: {{$json.owner}}\\nStars: {{$json.stars}}\\nLanguage: {{$json.language}}\\nGitHub: {{$json.url}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1328,
+        -80
+      ],
+      "id": "e29a9b2c-e716-478a-a87d-6a6a221262da",
+      "name": "Discord- High Priority"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    status: \"API_ERROR\",\n    message: $input.first().json.error?.message || \"API request failed\",\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        160
+      ],
+      "id": "50b92465-723f-432f-9881-82e48d07bf79",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    status: \"API_ERROR\",\n    message: $input.first().json.error?.message || \"API request failed\",\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        192
+      ],
+      "id": "635ead8f-028e-4f22-ba69-4874c63fb1f1",
+      "name": "Log API Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Log API Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Discord- High Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a52af6f6-6db4-4c0f-8afc-c9bc48a148a8",
+  "meta": {
+    "instanceId": "2b0c0b4f880271db3abbf2f5b27f2ce75229715c491bcd74b898865eea10e66d"
+  },
+  "id": "vFXyvCNzWlKCby0h",
+  "tags": []
+}

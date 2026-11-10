@@ -1,0 +1,145 @@
+{
+  "name": "Bonus - Website Uptime Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5c285365-607b-4e91-8f86-b236c24fc03f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://demo.realworld.show/",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "42ad8240-973c-459f-95f9-ff00af288cbf",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1bb32f0d-ed20-4eb1-96c2-306a51ad05f2",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "516a4173-7eb4-4c6f-9a72-c8ae171211c5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1569397558306930691/yY_sw5uftraaL_R2LSVdarBPFHxcwuPTFX06R0XBO09fqKBr_JrAjcSaOQeR1M0dHq2M",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"🚨 WEBSITE DOWN ALERT\\n\\nWebsite: https://demo.realworld.show/\\nHTTP Status: {{$json.statusCode}}\\nTime: {{$now}}\\n\\nPlease investigate website availability.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        96
+      ],
+      "id": "3e17bcd1-c16d-4190-b4ae-ffe9e5315996",
+      "name": "Discord - Website Down Alert"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Discord - Website Down Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "247679b9-cd99-4803-90b0-acd3c77dd106",
+  "meta": {
+    "instanceId": "2b0c0b4f880271db3abbf2f5b27f2ce75229715c491bcd74b898865eea10e66d"
+  },
+  "id": "xHPuBs4q9qHYq6ir",
+  "tags": []
+}
